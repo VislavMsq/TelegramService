@@ -1,0 +1,10 @@
+prefix=/Users/vladislavmosuyk/example/java/td
+
+Name: tdapi
+Description: Telegram Library - API
+Version: 1.8.29
+
+CFlags: -I"${prefix}/include"
+Libs: -L"${prefix}/lib" -ltdapi
+Requires.private: tdutils
+Libs.private: -L"/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home/lib/server" -l:libjvm.dylib

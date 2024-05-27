@@ -1,0 +1,1 @@
+/Users/vladislavmosuyk/td/example/java/build/../bin/libtdjni.dylib

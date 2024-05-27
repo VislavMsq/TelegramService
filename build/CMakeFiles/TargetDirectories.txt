@@ -1,0 +1,10 @@
+/Users/vladislavmosuyk/td/example/java/build/CMakeFiles/td_generate_java_api.dir
+/Users/vladislavmosuyk/td/example/java/build/CMakeFiles/build_java.dir
+/Users/vladislavmosuyk/td/example/java/build/CMakeFiles/generate_javadoc.dir
+/Users/vladislavmosuyk/td/example/java/build/CMakeFiles/tdjni.dir
+/Users/vladislavmosuyk/td/example/java/build/CMakeFiles/edit_cache.dir
+/Users/vladislavmosuyk/td/example/java/build/CMakeFiles/rebuild_cache.dir
+/Users/vladislavmosuyk/td/example/java/build/CMakeFiles/list_install_components.dir
+/Users/vladislavmosuyk/td/example/java/build/CMakeFiles/install.dir
+/Users/vladislavmosuyk/td/example/java/build/CMakeFiles/install/local.dir
+/Users/vladislavmosuyk/td/example/java/build/CMakeFiles/install/strip.dir
