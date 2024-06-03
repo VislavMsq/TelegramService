@@ -7,6 +7,7 @@
 package org.drinkless.tdlib;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -29,7 +30,7 @@ public final class Client {
          *
          * @param object Result of query or update of type TdApi.Update about new events.
          */
-        void onResult(TdApi.Object object);
+        void onResult(TdApi.Object object) throws java.util.concurrent.ExecutionException, InterruptedException;
     }
 
     /**

@@ -13,15 +13,15 @@ import java.io.BufferedReader;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Arrays;
-import java.util.NavigableSet;
-import java.util.TreeSet;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
 
 /**
  * Example class for TDLib usage from Java.
@@ -66,12 +66,243 @@ public final class Example {
         }
     }
 
+    public static CompletableFuture<TdApi.Message> getMessageWithText(long chatId, int limit, String text) {
+        CompletableFuture<TdApi.Message> future = new CompletableFuture<>();
+        TdApi.GetChatHistory getChatHistory = new TdApi.GetChatHistory(chatId, 0, 0, limit, false);
+
+        client.send(getChatHistory, object -> {
+            if (object.getConstructor() == TdApi.Messages.CONSTRUCTOR) {
+                TdApi.Messages msgs = (TdApi.Messages) object;
+                for (TdApi.Message msg : msgs.messages) {
+                    TdApi.MessageText content = (TdApi.MessageText) msg.content;
+                    if (content.text.text.contains(text)) {
+                        getMessageByIdAndText(chatId, msg.id, text).thenAccept(future::complete);
+                        return;
+                    }
+                }
+                future.completeExceptionally(new Exception("Message not found"));
+            } else if (object.getConstructor() == TdApi.Error.CONSTRUCTOR) {
+                future.completeExceptionally(new Exception("Receive an error: " + object));
+            } else {
+                future.completeExceptionally(new Exception("Receive wrong response from TDLib: " + object));
+            }
+        });
+
+        return future;
+    }
+
+//    public static void getMessageWithText(long chatId, int limit, String text) {
+//        TdApi.GetChatHistory getChatHistory = new TdApi.GetChatHistory(chatId, 0, 0, limit, false);
+//        client.send(getChatHistory, new Client.ResultHandler() {
+//            @Override
+//            public void onResult(TdApi.Object object) {
+//                TdApi.Messages msgs = (TdApi.Messages) object;
+//
+//                for (TdApi.Message msg : msgs.messages) {
+//                    getMessageByIdAndText(chatId, msg.id, text);
+//                }
+//            }
+//
+//
+//        });
+//    }
+
+    public static CompletableFuture<TdApi.Message> getMessageByIdAndText(long chatId, long messageId, String text) {
+        CompletableFuture<TdApi.Message> future = new CompletableFuture<>();
+        TdApi.GetMessage getMessageRequest = new TdApi.GetMessage(chatId, messageId);
+
+        client.send(getMessageRequest, object -> {
+            switch (object.getConstructor()) {
+                case TdApi.Message.CONSTRUCTOR:
+                    TdApi.Message message = (TdApi.Message) object;
+                    if (message.content instanceof TdApi.MessageText) {
+                        TdApi.MessageText content = (TdApi.MessageText) message.content;
+                        if (content.text.text.contains(text)) {
+                            future.complete(message);
+                        } else {
+                            future.completeExceptionally(new Exception("Message does not contain the specified text"));
+                        }
+                    } else {
+                        future.completeExceptionally(new Exception("Message content is not text"));
+                    }
+                    break;
+                case TdApi.Error.CONSTRUCTOR:
+                    future.completeExceptionally(new Exception("Received an error: " + object));
+                    break;
+                default:
+                    future.completeExceptionally(new Exception("Received wrong response from TDLib: " + object));
+            }
+        });
+        return future;
+    }
+
+    public static CompletableFuture<List<TdApi.Message>> getChatHistory(long chatId, int limit) {
+        CompletableFuture<List<TdApi.Message>> future = new CompletableFuture<>();
+        TdApi.GetChatHistory getChatHistory = new TdApi.GetChatHistory(chatId, 0, 0, limit, false);
+
+        client.send(getChatHistory, object -> {
+            if (object.getConstructor() == TdApi.Messages.CONSTRUCTOR) {
+                TdApi.Messages msgs = (TdApi.Messages) object;
+                List<TdApi.Message> messages = Arrays.asList(msgs.messages);
+                future.complete(messages);
+            } else if (object.getConstructor() == TdApi.Error.CONSTRUCTOR) {
+                future.completeExceptionally(new Exception("Receive an error: " + object));
+            } else {
+                future.completeExceptionally(new Exception("Receive wrong response from TDLib: " + object));
+            }
+        });
+
+        return future;
+    }
+
+
+    public static CompletableFuture<TdApi.Message> getMessageById(long chatId, long messageId) {
+        CompletableFuture<TdApi.Message> future = new CompletableFuture<>();
+        TdApi.GetMessage getMessageRequest = new TdApi.GetMessage(chatId, messageId);
+        client.send(getMessageRequest, object -> {
+            switch (object.getConstructor()) {
+                case TdApi.Message.CONSTRUCTOR:
+                    TdApi.Message message = (TdApi.Message) object;
+                    future.complete(message);
+                    break;
+                case TdApi.Error.CONSTRUCTOR:
+                    future.completeExceptionally(new Exception("Receive an error: " + object));
+                    break;
+                default:
+                    future.completeExceptionally(new Exception("Receive wrong response from TDLib: " + object));
+            }
+        });
+        return future;
+    }
+
+//    public static void getChatMembers(long supergroupId) {
+//        TdApi.GetSupergroupMembers getSupergroupMembers = new TdApi.GetSupergroupMembers(supergroupId, new TdApi.SupergroupMembersFilter() {});
+//    }
+
+    public static CompletableFuture<TdApi.ChatMembers> getSupergroupMembers(long supergroupId) {
+        CompletableFuture<TdApi.ChatMembers> future = new CompletableFuture<>();
+        TdApi.GetSupergroupMembers getSupergroupMembers = new TdApi.GetSupergroupMembers(supergroupId, null, 0, 200);
+
+        client.send(getSupergroupMembers, object -> {
+            if (object instanceof TdApi.ChatMembers) {
+                future.complete((TdApi.ChatMembers) object);
+            } else if (object instanceof TdApi.Error) {
+                future.completeExceptionally(new Exception("Receive an error: " + object));
+            } else {
+                future.completeExceptionally(new Exception("Receive wrong response from TDLib: " + object));
+            }
+        });
+
+        return future;
+    }
+    ////
+    public static CompletableFuture<TdApi.ChatStatistics> getChatStatistics(long chatId, boolean isDark) {
+        CompletableFuture<TdApi.ChatStatistics> future = new CompletableFuture<>();
+        TdApi.GetChatStatistics getChatStatistics = new TdApi.GetChatStatistics(chatId, isDark);
+
+        client.send(getChatStatistics, object -> {
+            if (object instanceof TdApi.ChatStatistics) {
+                future.complete((TdApi.ChatStatistics) object);
+            } else if (object instanceof TdApi.Error) {
+                future.completeExceptionally(new Exception("Receive an error: " + object));
+            } else {
+                future.completeExceptionally(new Exception("Receive wrong response from TDLib: " + object));
+            }
+        });
+
+        return future;
+    }
+
+    public static CompletableFuture<TdApi.Chat> getChat(long chatId) {
+        CompletableFuture<TdApi.Chat> future = new CompletableFuture<>();
+        TdApi.GetChat getChat = new TdApi.GetChat(chatId);
+
+        client.send(getChat, object -> {
+            if (object instanceof TdApi.Chat) {
+                future.complete((TdApi.Chat) object);
+            } else if (object instanceof TdApi.Error) {
+                future.completeExceptionally(new Exception("Receive an error: " + object));
+            } else {
+                future.completeExceptionally(new Exception("Receive wrong response from TDLib: " + object));
+            }
+        });
+
+        return future;
+    }
+
+    public static void getMessageViews(long chatId, long messageId) {
+        TdApi.GetMessage getMessage = new TdApi.GetMessage(chatId, messageId);
+        client.send(getMessage, new Client.ResultHandler() {
+            @Override
+            public void onResult(TdApi.Object object) {
+                if (object.getConstructor() == TdApi.Message.CONSTRUCTOR) {
+                    TdApi.Message message = (TdApi.Message) object;
+                    System.out.println("Message views: " + message.interactionInfo.viewCount);
+                } else {
+                    System.err.println("Failed to get message: " + object);
+                }
+            }
+        });
+    }
+
+    private static class UpdatesHandler implements Client.ResultHandler {
+        @Override
+        public void onResult(TdApi.Object object) {
+            switch (object.getConstructor()) {
+                case TdApi.UpdateMessageReactions.CONSTRUCTOR:
+                    TdApi.UpdateMessageReactions updateMessageReactions = (TdApi.UpdateMessageReactions) object;
+                    System.out.println("Message " + updateMessageReactions.reactions);
+                    break;
+//                case TdApi.UpdateNewMessage.CONSTRUCTOR:
+//                    TdApi.UpdateNewMessage updateNewMessage = (TdApi.UpdateNewMessage) object;
+//                    System.out.println("New message from user " + updateNewMessage.message.senderUserId + ": " + updateNewMessage.message.content);
+//                    break;
+//                case TdApi.UpdateMessageContent.CONSTRUCTOR:
+//                    TdApi.UpdateMessageContent updateMessageContent = (TdApi.UpdateMessageContent) object;
+//                    System.out.println("Message content updated: " + updateMessageContent.messageId);
+//                    break;
+//                case TdApi.UpdateMessageViews.CONSTRUCTOR:
+//                    TdApi.UpdateMessageViews updateMessageViews = (TdApi.UpdateMessageViews) object;
+//                    System.out.println("Message " + updateMessageViews.messageId + " views: " + updateMessageViews.views);
+//                    break;
+//                // Обработка других типов обновлений
+//                default:
+//                    break;
+            }
+        }
+    }
+
+
+//        client.send(getChatHistory, new Client.ResultHandler() {
+//            @Override
+//            public void onResult(TdApi.Object object) {
+//                switch (object.getConstructor()) {
+//                    case TdApi.Error.CONSTRUCTOR:
+//                        } else {
+//                            System.err.println("Receive an error for LoadChats:" + newLine + object);
+//                        }
+//                        break;
+//                    case TdApi.Ok.CONSTRUCTOR:
+//                        // chats had already been received through updates, let's retry request
+//
+//                        break;
+//                    default:
+//                        System.err.println("Receive wrong response from TDLib:" + newLine + object);
+//                }
+//            }
+//        });
+
+//        for (TdApi.Message message : messages.messages) {
+//            System.out.println(message.content);
+//        }
+
+
     private static void setChatPositions(TdApi.Chat chat, TdApi.ChatPosition[] positions) {
-        synchronized (mainChatList) {
+        synchronized (Example.mainChatList) {
             synchronized (chat) {
                 for (TdApi.ChatPosition position : chat.positions) {
                     if (position.list.getConstructor() == TdApi.ChatListMain.CONSTRUCTOR) {
-                        boolean isRemoved = mainChatList.remove(new OrderedChat(chat.id, position));
+                        boolean isRemoved = Example.mainChatList.remove(new OrderedChat(chat.id, position));
                         assert isRemoved;
                     }
                 }
@@ -258,6 +489,8 @@ public final class Example {
                     haveAuthorization = false;
                     client.send(new TdApi.Close(), defaultHandler);
                     break;
+                case "gch":
+                    getChatHistory(Long.parseLong(commands[1]), 50);
                 default:
                     System.err.println("Unsupported command: " + command);
             }
@@ -333,25 +566,29 @@ public final class Example {
         // create client
         client = Client.create(new UpdateHandler(), null, null);
 
-        // main loop
-        while (!needQuit) {
-            // await authorization
-            authorizationLock.lock();
-            try {
-                while (!haveAuthorization) {
-                    gotAuthorization.await();
-                }
-            } finally {
-                authorizationLock.unlock();
-            }
+//        if (!haveAuthorization) {
+//            gotAuthorization.await();
+//        }
 
-            while (haveAuthorization) {
-                getCommand();
-            }
+        // main loop
+//        while (!needQuit) {
+//            // await authorization
+        authorizationLock.lock();
+        try {
+//                while (!haveAuthorization) {
+            gotAuthorization.await();
+//                }
+        } finally {
+            authorizationLock.unlock();
         }
-        while (!canQuit) {
-            Thread.sleep(1);
-        }
+//
+//            while (haveAuthorization) {
+//                getCommand();
+//            }
+//        }
+//        while (!canQuit) {
+//            Thread.sleep(1);
+//        }
     }
 
     private static class OrderedChat implements Comparable<OrderedChat> {
