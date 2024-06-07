@@ -54,11 +54,16 @@ public class BotMethods {
                 GetChat getChat = new GetChat();
                 getChat.setChatId(update.getMessage().getChatId());
                 Chat chat = bot.execute(getChat);
+                System.out.println(chat.getId());
 
                 WebStats webStats = new WebStats();
 
                 getChat.setChatId(chat.getLinkedChatId());
                 chat = bot.execute(getChat);
+
+                System.out.println("====channelId=====");
+                System.out.println(chat.getId());
+
 
                 List<TdApi.Message> messageList = Example.getChatHistory(chat.getId(), 10).join();
 
@@ -72,7 +77,19 @@ public class BotMethods {
                 webStats.setReactionCount(0);
                 webStats.setReplyCount(0);
 
+                webStats.setLastUpdateReaction(LocalDateTime.now());
+                webStats.setLastUpdateReply(LocalDateTime.now());
+                webStats.setLastUpdateView(LocalDateTime.now());
+
                 webStatsRepository.save(webStats);
+
+                Post post = new Post();
+                post.setTelegramId(update.getMessage().getMessageId());
+                post.setChannel(channelService.getChannel(update, bot));
+                post.setPostTime(LocalDateTime.now());
+
+                postRepository.save(post);
+
             }
         }
 

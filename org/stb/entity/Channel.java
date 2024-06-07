@@ -47,7 +47,7 @@ public class Channel {
     @OneToMany(
             mappedBy = "channel",
             cascade = {CascadeType.MERGE, CascadeType.PERSIST, CascadeType.REFRESH},
-            fetch = FetchType.LAZY
+            fetch = FetchType.EAGER
     )
     private Set<Post> post;
 

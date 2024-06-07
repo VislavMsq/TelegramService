@@ -65,10 +65,12 @@ public class BotInitializer {
                 List<Channel> channels = channelRepository.findAll();
                 for (Channel channel : channels) {
                     Set<Post> posts = channel.getPost();
+                    System.out.println(posts);
                     for (Post post : posts) {
                         int localId = post.getTelegramId();
 
                         WebStats webStats = webStatsRepository.findFirstByChannelIdAndLocalId(channel.getChannelId(), localId);
+
                         TdApi.Message message = Example.getMessageById(channel.getChannelId(), webStats.getGlobalId()).join();
 
                         int views = message.interactionInfo.viewCount;
@@ -117,6 +119,10 @@ public class BotInitializer {
                             webStatsHistory.setViewCount(webStats.getViewCount());
                         }
                         webStatsHistory.setWebStats(webStats);
+
+                        System.out.println(webStats);
+                        System.out.println(webStatsHistory);
+
                         transactionTemplate.execute((TransactionCallback<Void>) status -> {
                             if (webStats.getLastUpdateReaction().equals(webStatsHistory.getLastUpdateReaction()) &&
                                 webStats.getLastUpdateReply().equals(webStatsHistory.getLastUpdateReply()) &&

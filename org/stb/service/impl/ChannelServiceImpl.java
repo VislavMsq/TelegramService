@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.stb.bot.TGBot;
 import org.stb.entity.Channel;
+import org.stb.entity.WebStats;
 import org.stb.repository.ChannelRepository;
 import org.stb.service.ChannelService;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChat;
@@ -22,7 +23,7 @@ public class ChannelServiceImpl implements ChannelService {
         Message message = update.getMessage();
         Channel channel = new Channel();
         if (!channelRepository.existsByChatId(message.getChatId())) {
-            channel.setChatId(message.getChatId());
+//            channel.setChatId(message.getChatId());
             channel.setUsers(new HashSet<>());
             channel.setPost(new HashSet<>());
 
@@ -30,13 +31,24 @@ public class ChannelServiceImpl implements ChannelService {
             getChat.setChatId(update.getMessage().getChatId());
             Chat chat = bot.execute(getChat);
 
-//            System.out.println(chat.getLinkedChatId());
+//            WebStats webStats = new WebStats();
+
             getChat.setChatId(chat.getLinkedChatId());
             chat = bot.execute(getChat);
+
+//            GetChat getChat = new GetChat();
+//            getChat.setChatId(update.getMessage().getChatId());
+//            Chat chat = bot.execute(getChat);
+
+//            System.out.println(chat.getLinkedChatId());
+//            getChat.setChatId(chat.getLinkedChatId());
+//            chat = bot.execute(getChat);
 
             channel.setChannelId(chat.getId());
             channel.setTitle(chat.getTitle());
             channel.setChatId(chat.getLinkedChatId());
+
+            System.out.println(channel);
 
             channelRepository.save(channel);
         } else {
