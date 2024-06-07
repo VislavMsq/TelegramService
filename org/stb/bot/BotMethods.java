@@ -15,6 +15,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +40,7 @@ public class BotMethods {
     private final CallBackService callBackService;
     private final ConnectionService connectionService;
     private final WebStatsRepository webStatsRepository;
+    private final PostRepository postRepository;
 
     @Transactional
     public void handleUpdate(Update update, TGBot bot) throws TelegramApiException, ExecutionException, InterruptedException {

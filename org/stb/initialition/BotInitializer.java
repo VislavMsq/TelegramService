@@ -73,17 +73,28 @@ public class BotInitializer {
 
                         int views = message.interactionInfo.viewCount;
                         int replyCount = message.interactionInfo.replyInfo.replyCount;
-                        Integer reactionCount = Arrays.stream(message.interactionInfo.reactions.reactions)
-                                .map(reaction -> reaction.totalCount)
-                                .reduce(0, Integer::sum);
-
+                        TdApi.MessageReactions reaction = message.interactionInfo.reactions;
                         WebStatsHistory webStatsHistory = new WebStatsHistory();
+                        Integer reactionCount = 0;
 
-                        if (!Objects.equals(webStats.getReactionCount(), reactionCount)) {
-                            webStats.setReactionCount(reactionCount);
-                            webStats.setLastUpdateReaction(LocalDateTime.now());
-                            webStatsHistory.setReactionCount(reactionCount);
-                            webStatsHistory.setLastUpdateReaction(LocalDateTime.now());
+                        if (reaction == null) {
+                            webStats.setReactionCount(0);
+                            webStatsHistory.setReactionCount(0);
+                            webStatsHistory.setLastUpdateReaction(webStats.getLastUpdateReaction());
+                        } else {
+                            reactionCount = Arrays.stream(reaction.reactions)
+                                    .map(reaction1 -> reaction1.totalCount)
+                                    .reduce(0, Integer::sum);
+
+                            if (!Objects.equals(webStats.getReactionCount(), reactionCount)) {
+                                webStats.setReactionCount(reactionCount);
+                                webStats.setLastUpdateReaction(LocalDateTime.now());
+                                webStatsHistory.setReactionCount(reactionCount);
+                                webStatsHistory.setLastUpdateReaction(LocalDateTime.now());
+                            } else {
+                                webStatsHistory.setLastUpdateReaction(webStats.getLastUpdateReaction());
+                                webStatsHistory.setReactionCount(webStats.getReactionCount());
+                            }
                         }
 
                         if (!Objects.equals(webStats.getReplyCount(), replyCount)) {
@@ -91,6 +102,9 @@ public class BotInitializer {
                             webStats.setLastUpdateReply(LocalDateTime.now());
                             webStatsHistory.setReplyCount(replyCount);
                             webStatsHistory.setLastUpdateReply(LocalDateTime.now());
+                        } else {
+                            webStatsHistory.setLastUpdateReply(webStats.getLastUpdateReply());
+                            webStatsHistory.setReplyCount(webStats.getReplyCount());
                         }
 
                         if (!Objects.equals(webStats.getViewCount(), views)) {
@@ -98,16 +112,26 @@ public class BotInitializer {
                             webStats.setLastUpdateView(LocalDateTime.now());
                             webStatsHistory.setViewCount(views);
                             webStatsHistory.setLastUpdateView(LocalDateTime.now());
+                        }else {
+                            webStatsHistory.setLastUpdateView(webStats.getLastUpdateView());
+                            webStatsHistory.setViewCount(webStats.getViewCount());
                         }
                         webStatsHistory.setWebStats(webStats);
                         transactionTemplate.execute((TransactionCallback<Void>) status -> {
+                            if (webStats.getLastUpdateReaction().equals(webStatsHistory.getLastUpdateReaction()) &&
+                                webStats.getLastUpdateReply().equals(webStatsHistory.getLastUpdateReply()) &&
+                                webStats.getLastUpdateView().equals(webStatsHistory.getLastUpdateView())) {
+                                return null;
+                            }
+                            WebStats updatedWebStats = webStatsRepository.saveAndFlush(webStats); // Сохраняем обновленную сущность WebStats
+                            webStatsHistory.setWebStats(updatedWebStats);
                             webStatsHistoryRepository.save(webStatsHistory);
                             return null;
                         });
                     }
                 }
                 try {
-                    Thread.sleep(1000 * 60 * 60);
+                    Thread.sleep((long) (1000 * 60 * 0.5));
                 } catch (InterruptedException e) {
                     LOGGER.error("tdLibUpdater interrupted: ", e);
                     break;
@@ -117,34 +141,15 @@ public class BotInitializer {
         thread.setDaemon(true);
         thread.start();
     }
-    /*
-
-
-
-
-      private void tdLibUpdater() {
-    Thread thread = new Thread(() -> {
-        while (true) {
-            // ... ваш код ...
-
-            transactionTemplate.execute(new TransactionCallback<Void>() {
-                @Override
-                public Void doInTransaction(TransactionStatus status) {
-                    webStatsHistoryRepository.save(webStatsHistory);
-                    return null;
-                }
-            });
-
-            // ... ваш код ...
-        }
-    });
-    thread.setDaemon(true);
-    thread.start();
-}
-     */
-
     // написати запускач потоку що буде запускатись окремим потоком та робити ці речі
     /*
+    transactionTemplate.execute((TransactionCallback<Void>) status -> {
+    webStatsRepository.saveAndFlush(webStats); // Используйте saveAndFlush вместо save
+    webStatsHistoryRepository.saveAndFlush(webStatsHistory);
+    return null;
+});
+
+
        private void checkUser(User user, TGBot tgBot) throws TelegramApiException {
         if (user.getLeaveTime() != null && user.getLeaveTime().isBefore(user.getLeaveTime().minusDays(4))) {
             toMessage(user.getTelegramId(), "прийди до нас у нас є багато цікових новин", tgBot);

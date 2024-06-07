@@ -18,6 +18,9 @@ public interface ChannelRepository extends JpaRepository<Channel, UUID> {
 
     boolean existsByChatId(Long chatId);
 
+//    @Query("SELECT c FROM Channel c JOIN FETCH c.post")
+//    List<Channel> findAllWithPosts();
+
     Channel findFirstByChatId(Long chatId);
 
     Channel findFirstById(UUID id);

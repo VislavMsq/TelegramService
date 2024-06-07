@@ -34,6 +34,8 @@ public final class Example {
     private static volatile boolean needQuit = false;
     private static volatile boolean canQuit = false;
 
+    private static Scanner scanner = new Scanner(System.in);
+
     private static final Client.ResultHandler defaultHandler = new DefaultHandler();
 
     private static final Lock authorizationLock = new ReentrantLock();
@@ -195,6 +197,7 @@ public final class Example {
 
         return future;
     }
+
     ////
     public static CompletableFuture<TdApi.ChatStatistics> getChatStatistics(long chatId, boolean isDark) {
         CompletableFuture<TdApi.ChatStatistics> future = new CompletableFuture<>();
@@ -445,12 +448,11 @@ public final class Example {
     private static String promptString(String prompt) {
         System.out.print(prompt);
         currentPrompt = prompt;
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         String str = "";
         try {
-            str = reader.readLine();
-        } catch (IOException e) {
-            e.printStackTrace();
+            str = scanner.nextLine();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
         currentPrompt = null;
         return str;
